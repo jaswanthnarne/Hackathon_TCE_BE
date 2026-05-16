@@ -51,9 +51,15 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-  await connectDB();
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`));
-};
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const startServer = async () => {
+    await connectDB();
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`));
+  };
+  startServer().catch((err) => { console.error('Failed to start server:', err); process.exit(1); });
+} else {
+  // In production (Vercel), we just connect to the DB and export the app
+  connectDB().catch(console.error);
+}
 
-startServer().catch((err) => { console.error('Failed to start server:', err); process.exit(1); });
+module.exports = app;
