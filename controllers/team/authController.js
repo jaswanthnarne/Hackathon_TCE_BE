@@ -14,7 +14,9 @@ exports.login = async (req, res, next) => {
       const lockTime = team.lockUntil ? Math.ceil((team.lockUntil - Date.now()) / 60000) : 0;
       return errorResponse(res, 403, `Account locked. ${team.isLocked ? `Reason: ${team.lockReason}` : `Try again in ${lockTime} minutes.`}`);
     }
-    if (team.status === 'rejected') return errorResponse(res, 403, 'Your team registration was rejected. Contact admin.');
+    if (team.status !== 'approved') {
+      return errorResponse(res, 403, `Your team registration is currently ${team.status}. Please wait for admin approval.`);
+    }
 
     const isMatch = await team.comparePassword(password);
     if (!isMatch) {

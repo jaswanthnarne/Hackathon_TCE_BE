@@ -254,3 +254,129 @@ exports.exportTeams = async (req, res, next) => {
     res.end();
   } catch (error) { next(error); }
 };
+
+// Bulk import teams from JSON
+exports.bulkImportTeamsJson = async (req, res, next) => {
+  try {
+    const { teams, sendEmail: shouldSendEmail } = req.body;
+    if (!Array.isArray(teams) || teams.length === 0) {
+      return errorResponse(res, 400, 'No teams provided for import');
+    }
+
+    const results = {
+      importedCount: 0,
+      skippedCount: 0,
+      errors: []
+    };
+
+    for (let i = 0; i < teams.length; i++) {
+      const teamData = teams[i];
+      try {
+        if (!teamData.teamName || !teamData.teamLead || !teamData.teamLead.email) {
+          results.skippedCount++;
+          results.errors.push({ row: i + 1, team: teamData.teamName || 'Unknown', reason: 'Missing required fields (teamName, lead email)' });
+          continue;
+        }
+
+        const allEmails = [teamData.teamLead.email];
+        const allUsns = [teamData.teamLead.usn];
+        
+        if (teamData.members && Array.isArray(teamData.members)) {
+          teamData.members.forEach(m => {
+            if (m.email) allEmails.push(m.email);
+            if (m.usn) allUsns.push(m.usn);
+          });
+        }
+
+        const cleanEmails = allEmails.map(e => e?.toLowerCase().trim()).filter(Boolean);
+        const cleanUsns = allUsns.map(u => u?.toUpperCase().trim()).filter(Boolean);
+
+        let usnExists = false;
+        let emailExists = false;
+
+        if (cleanUsns.length > 0) {
+           const existingUsn = await Team.findOne({ $or: [ { 'teamLead.usn': { $in: cleanUsns } }, { 'members.usn': { $in: cleanUsns } } ] });
+           if (existingUsn) usnExists = true;
+        }
+
+        if (cleanEmails.length > 0) {
+           const existingEmail = await Team.findOne({ $or: [ { 'teamLead.email': { $in: cleanEmails } }, { 'members.email': { $in: cleanEmails } } ] });
+           if (existingEmail) emailExists = true;
+        }
+
+        if (usnExists || emailExists) {
+          results.skippedCount++;
+          results.errors.push({ row: i + 1, team: teamData.teamName, reason: 'Duplicate email or USN already registered in another team' });
+          continue;
+        }
+
+        const existingTeamName = await Team.findOne({ teamName: teamData.teamName });
+        if (existingTeamName) {
+           results.skippedCount++;
+           results.errors.push({ row: i + 1, team: teamData.teamName, reason: 'Team name already exists' });
+           continue;
+        }
+
+        const teamId = await generateTeamId();
+        const plainPassword = generatePassword();
+
+        const leadMember = {
+          name: teamData.teamLead.name,
+          email: teamData.teamLead.email,
+          usn: teamData.teamLead.usn ? teamData.teamLead.usn.toUpperCase() : '',
+          phone: teamData.teamLead.phone || '',
+          college: teamData.teamLead.college || '',
+          year: teamData.teamLead.year || '',
+          branch: teamData.teamLead.branch || '',
+          isLead: true,
+          addedBy: req.admin._id,
+        };
+
+        const otherMembers = (teamData.members || []).map(m => ({
+          name: m.name,
+          email: m.email,
+          usn: m.usn ? m.usn.toUpperCase() : '',
+          phone: m.phone || '',
+          college: m.college || teamData.teamLead.college || '',
+          isLead: false,
+          addedBy: req.admin._id
+        }));
+
+        const allMembers = [leadMember, ...otherMembers];
+
+        const team = await Team.create({
+          teamId, 
+          teamName: teamData.teamName, 
+          password: plainPassword,
+          teamLead: leadMember,
+          members: allMembers,
+          createdBy: req.admin._id,
+        });
+
+        if (shouldSendEmail) {
+          const emailData = teamCredentialsTemplate({ teamId, teamName: teamData.teamName, password: plainPassword, leadName: teamData.teamLead.name, loginUrl: `${process.env.FRONTEND_URL}/team/login` });
+          const emailResult = await sendEmail({ to: teamData.teamLead.email, subject: emailData.subject, html: emailData.html });
+
+          await EmailLog.create({
+            to: [teamData.teamLead.email], subject: emailData.subject, body: emailData.html,
+            type: 'credentials', status: emailResult.success ? 'sent' : 'failed',
+            sentBy: req.admin._id.toString(), error: emailResult.error || '',
+          });
+        }
+
+        results.importedCount++;
+      } catch (err) {
+        results.skippedCount++;
+        results.errors.push({ row: i + 1, team: teamData?.teamName || 'Unknown', reason: err.message });
+      }
+    }
+
+    await auditLog(req.admin._id, 'BULK_IMPORT_TEAMS', {
+      description: `Bulk imported ${results.importedCount} teams`,
+      newValue: { importedCount: results.importedCount, skippedCount: results.skippedCount },
+      ipAddress: req.ip, userAgent: req.headers['user-agent'],
+    });
+
+    successResponse(res, 200, 'Bulk import completed', results);
+  } catch (error) { next(error); }
+};

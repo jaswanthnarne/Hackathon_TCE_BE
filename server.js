@@ -16,13 +16,7 @@ app.set('trust proxy', true);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    const allowed = [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'];
-    if (allowed.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(hpp());
@@ -42,6 +36,9 @@ app.use('/api/team', require('./routes/teamRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'Server is running', timestamp: new Date() }));
+
+// Root route
+app.get('/', (req, res) => res.json({ success: true, message: 'TCE Hackathon API is running!' }));
 
 // 404
 app.use((req, res) => res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` }));

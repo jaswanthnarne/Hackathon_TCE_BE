@@ -23,6 +23,7 @@ router.get('/teams/:id', adminAuth, teamCtrl.getTeam);
 router.put('/teams/:id', adminAuth, teamCtrl.updateTeam);
 router.delete('/teams/:id', adminAuth, teamCtrl.deleteTeam);
 router.delete('/teams/bulk', adminAuth, teamCtrl.bulkDeleteTeams);
+router.post('/teams/bulk-import-json', adminAuth, teamCtrl.bulkImportTeamsJson);
 router.put('/teams/:id/status', adminAuth, [body('status').isIn(['pending', 'approved', 'rejected', 'locked'])], validateRequest, teamCtrl.changeStatus);
 router.put('/teams/:id/reset-password', adminAuth, teamCtrl.resetPassword);
 router.put('/teams/:id/force-password-change', adminAuth, teamCtrl.forcePasswordChange);
