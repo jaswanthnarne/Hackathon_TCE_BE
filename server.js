@@ -31,7 +31,7 @@ app.use('/api', generalLimiter);
 
 // Routes
 app.use('/api/public', require('./routes/publicRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/console/admin', require('./routes/adminRoutes'));
 app.use('/api/team', require('./routes/teamRoutes'));
 
 // Health check

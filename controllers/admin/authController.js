@@ -59,7 +59,7 @@ exports.forgotPassword = async (req, res, next) => {
     admin.passwordResetExpires = Date.now() + 30 * 60 * 1000;
     await admin.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/console/admin/reset-password/${resetToken}`;
     await sendEmail({
       to: admin.email,
       subject: 'Password Reset — TCE Hackathon Admin',
