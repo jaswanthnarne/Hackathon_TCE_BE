@@ -109,6 +109,7 @@ router.get('/email/logs', adminAuth, emailCtrl.getEmailLogs);
 const configCtrl = require('../controllers/admin/configController');
 router.get('/config', adminAuth, configCtrl.getConfig);
 router.put('/config', adminAuth, configCtrl.updateConfig);
+router.post('/config/timer', adminAuth, configCtrl.updateTimer);
 router.post('/config/logo', adminAuth, imageUpload.single('logo'), configCtrl.uploadLogo);
 router.post('/config/banner', adminAuth, imageUpload.single('banner'), configCtrl.uploadBanner);
 

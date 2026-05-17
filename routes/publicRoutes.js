@@ -10,6 +10,13 @@ router.get('/hackathon-info', async (req, res, next) => {
   try {
     let config = await HackathonConfig.findOne().select('-updatedBy').lean();
     if (!config) config = { name: 'TCE Hackathon', tagline: 'Code. Create. Conquer.' };
+    if (config.timer && config.timer.status === 'running' && config.timer.lastStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(config.timer.lastStartedAt).getTime()) / 1000);
+      config.timer.remaining = Math.max(0, config.timer.remaining - elapsed);
+      if (config.timer.remaining === 0) {
+        config.timer.status = 'idle';
+      }
+    }
     successResponse(res, 200, 'Hackathon info', { config });
   } catch (error) { next(error); }
 });

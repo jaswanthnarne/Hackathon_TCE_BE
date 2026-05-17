@@ -134,6 +134,12 @@ const hackathonConfigSchema = new mongoose.Schema(
       github: { type: String, default: '' },
       youtube: { type: String, default: '' },
     },
+    timer: {
+      status: { type: String, enum: ['idle', 'running', 'paused'], default: 'idle' },
+      duration: { type: Number, default: 86400 }, // Default 24 hours in seconds
+      remaining: { type: Number, default: 86400 },
+      lastStartedAt: { type: Date, default: null },
+    },
 
     // Landing Page Configuration
     landingPage: {
