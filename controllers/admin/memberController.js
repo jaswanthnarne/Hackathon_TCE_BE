@@ -9,14 +9,34 @@ exports.addMember = async (req, res, next) => {
     if (!team) return errorResponse(res, 404, 'Team not found');
     if (team.members.length >= 5) return errorResponse(res, 400, 'Maximum 5 members allowed');
 
-    const member = { ...req.body, isLead: false, addedBy: req.admin._id, addedAt: new Date() };
-    team.members.push(member);
+    const isMakeLead = Boolean(req.body.isLead);
+    const memberData = { ...req.body, isLead: isMakeLead, addedBy: req.admin._id, addedAt: new Date() };
+    team.members.push(memberData);
+    const newMemberDoc = team.members[team.members.length - 1];
+
+    if (isMakeLead) {
+      team.members.forEach(m => {
+        if (m._id.toString() !== newMemberDoc._id.toString()) {
+          m.isLead = false;
+        }
+      });
+      team.teamLead = {
+        name: newMemberDoc.name,
+        email: newMemberDoc.email,
+        usn: newMemberDoc.usn || '',
+        phone: newMemberDoc.phone || '',
+        college: newMemberDoc.college || '',
+        year: newMemberDoc.year || '',
+        branch: newMemberDoc.branch || ''
+      };
+    }
+
     await team.save();
 
     await auditLog(req.admin._id, 'ADD_MEMBER', {
       targetId: team._id, targetModel: 'Team',
-      description: `Added member ${member.name} to team ${team.teamId}`,
-      newValue: member, ipAddress: req.ip, userAgent: req.headers['user-agent'],
+      description: `Added member ${memberData.name} to team ${team.teamId}`,
+      newValue: memberData, ipAddress: req.ip, userAgent: req.headers['user-agent'],
     });
 
     successResponse(res, 201, 'Member added', { team });
@@ -46,14 +66,25 @@ exports.editMember = async (req, res, next) => {
     const oldValue = member.toObject();
     Object.assign(member, req.body);
     
+    if (req.body.isLead !== undefined) {
+      const makeLead = Boolean(req.body.isLead);
+      if (makeLead && !member.isLead) {
+        team.members.forEach(m => { m.isLead = false; });
+        member.isLead = true;
+      }
+    }
+    
     // Update teamLead if this member is the lead
     if (member.isLead) {
-      team.teamLead.name = member.name;
-      team.teamLead.phone = member.phone;
-      team.teamLead.college = member.college;
-      team.teamLead.year = member.year;
-      team.teamLead.branch = member.branch;
-      team.teamLead.usn = member.usn;
+      team.teamLead = {
+        name: member.name,
+        email: member.email,
+        usn: member.usn || '',
+        phone: member.phone || '',
+        college: member.college || '',
+        year: member.year || '',
+        branch: member.branch || ''
+      };
     }
     await team.save();
 
@@ -107,7 +138,15 @@ exports.changeLead = async (req, res, next) => {
     if (oldLead) oldLead.isLead = false;
     newLead.isLead = true;
 
-    team.teamLead = { name: newLead.name, email: newLead.email, phone: newLead.phone, college: newLead.college, year: newLead.year, branch: newLead.branch };
+    team.teamLead = {
+      name: newLead.name,
+      email: newLead.email,
+      usn: newLead.usn || '',
+      phone: newLead.phone || '',
+      college: newLead.college || '',
+      year: newLead.year || '',
+      branch: newLead.branch || ''
+    };
     await team.save();
 
     await auditLog(req.admin._id, 'CHANGE_LEAD', {

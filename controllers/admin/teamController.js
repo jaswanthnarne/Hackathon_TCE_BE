@@ -282,7 +282,9 @@ exports.bulkImportTeamsJson = async (req, res, next) => {
         const allUsns = [teamData.teamLead.usn];
         
         if (teamData.members && Array.isArray(teamData.members)) {
-          teamData.members.forEach(m => {
+          teamData.members.forEach((m, idx) => {
+            const fallbackEmail = m.email || `${m.usn ? m.usn.toLowerCase() : 'member' + idx + '_' + Math.random().toString(36).substring(2,6)}@${teamData.teamName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'team'}.com`;
+            m.email = fallbackEmail;
             if (m.email) allEmails.push(m.email);
             if (m.usn) allUsns.push(m.usn);
           });
@@ -332,8 +334,8 @@ exports.bulkImportTeamsJson = async (req, res, next) => {
           addedBy: req.admin._id,
         };
 
-        const otherMembers = (teamData.members || []).map(m => ({
-          name: m.name,
+        const otherMembers = (teamData.members || []).map((m, index) => ({
+          name: m.name || `Member ${index + 2}`,
           email: m.email,
           usn: m.usn ? m.usn.toUpperCase() : '',
           phone: m.phone || '',
@@ -378,5 +380,35 @@ exports.bulkImportTeamsJson = async (req, res, next) => {
     });
 
     successResponse(res, 200, 'Bulk import completed', results);
+  } catch (error) { next(error); }
+};
+
+// Unlock team account (reset login attempts and lock status)
+exports.unlockTeam = async (req, res, next) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    if (!team) return errorResponse(res, 404, 'Team not found');
+
+    const oldStatus = team.status;
+    const oldLockUntil = team.lockUntil;
+
+    team.loginAttempts = 0;
+    team.lockUntil = undefined;
+    team.isLocked = false;
+    team.lockReason = '';
+    
+    if (team.status === 'locked') {
+      team.status = 'approved';
+    }
+    await team.save();
+
+    await auditLog(req.admin._id, 'UNLOCK_TEAM', {
+      targetId: team._id, targetModel: 'Team',
+      description: `Unlocked team ${team.teamId} (reset login attempts and lock status)`,
+      oldValue: { status: oldStatus, lockUntil: oldLockUntil }, newValue: { status: team.status, isLocked: false },
+      ipAddress: req.ip, userAgent: req.headers['user-agent'],
+    });
+
+    successResponse(res, 200, 'Team account unlocked successfully', { team });
   } catch (error) { next(error); }
 };

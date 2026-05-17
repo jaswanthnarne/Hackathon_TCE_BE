@@ -27,6 +27,7 @@ router.post('/teams/bulk-import-json', adminAuth, teamCtrl.bulkImportTeamsJson);
 router.put('/teams/:id/status', adminAuth, [body('status').isIn(['pending', 'approved', 'rejected', 'locked'])], validateRequest, teamCtrl.changeStatus);
 router.put('/teams/:id/reset-password', adminAuth, teamCtrl.resetPassword);
 router.put('/teams/:id/force-password-change', adminAuth, teamCtrl.forcePasswordChange);
+router.put('/teams/:id/unlock', adminAuth, teamCtrl.unlockTeam);
 
 // Members
 const memberCtrl = require('../controllers/admin/memberController');
