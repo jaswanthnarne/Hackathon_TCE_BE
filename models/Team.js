@@ -95,6 +95,23 @@ const teamSchema = new mongoose.Schema(
       type: Number,
       default: 3,
     },
+    // Table Allocation
+    zone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    tableNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    // Gamification Badges
+    badges: [{
+      name: { type: String, required: true },
+      challengeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Challenge' },
+      awardedAt: { type: Date, default: Date.now },
+    }],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Admin',

@@ -121,4 +121,25 @@ router.get('/certificate', teamAuth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// ============ WALLET (Digital Coupons) ============
+const mealCtrl = require('../controllers/admin/mealPassController');
+router.get('/wallet', teamAuth, mealCtrl.getTeamWallet);
+router.post('/wallet/tap-redeem', teamAuth, mealCtrl.tapRedeem);
+
+// ============ HELP DESK ============
+const helpCtrl = require('../controllers/admin/helpRequestController');
+router.post('/help/request', teamAuth, [body('category').notEmpty(), body('description').notEmpty()], validateRequest, helpCtrl.createRequest);
+router.get('/help/my-requests', teamAuth, helpCtrl.getMyRequests);
+
+// ============ CHALLENGES ============
+const challengeCtrl = require('../controllers/admin/challengeController');
+router.get('/challenges', teamAuth, challengeCtrl.getActiveChallenges);
+router.post('/challenges/submit', teamAuth, [body('challengeId').notEmpty(), body('proof').notEmpty()], validateRequest, challengeCtrl.submitProof);
+router.get('/badges', teamAuth, challengeCtrl.getMyBadges);
+
+// ============ VENUE MAP (public for teams) ============
+const tableCtrl = require('../controllers/admin/tableController');
+router.get('/venue-map', teamAuth, tableCtrl.getVenueMap);
+
 module.exports = router;
+

@@ -11,11 +11,17 @@ const adminSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       unique: true,
+      sparse: true,
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    staffId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -25,7 +31,7 @@ const adminSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['superadmin', 'admin'],
+      enum: ['superadmin', 'admin', 'volunteer', 'mentor', 'judge'],
       default: 'admin',
     },
     isActive: {
@@ -34,6 +40,28 @@ const adminSchema = new mongoose.Schema(
     },
     lastLogin: {
       type: Date,
+    },
+    // Judge-specific: teams assigned for scoring
+    assignedTeams: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team',
+    }],
+    // Mentor-specific: area of expertise
+    specialization: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    // Volunteer-specific: duty area
+    dutyArea: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
     },
     passwordResetToken: String,
     passwordResetExpires: Date,

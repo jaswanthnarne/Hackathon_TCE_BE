@@ -133,4 +133,39 @@ router.get('/reports/college-wise', adminAuth, reportCtrl.collegeReport);
 const auditCtrl = require('../controllers/admin/auditController');
 router.get('/audit', adminAuth, auditCtrl.getLogs);
 
+// Staff Management (volunteer, mentor, judge accounts)
+const staffCtrl = require('../controllers/admin/staffController');
+router.get('/staff', adminAuth, staffCtrl.listStaff);
+router.post('/staff', adminAuth, [body('name').notEmpty(), body('staffId').notEmpty(), body('role').isIn(['volunteer', 'mentor', 'judge'])], validateRequest, staffCtrl.createStaffAccount);
+router.delete('/staff/:id', adminAuth, staffCtrl.deleteStaff);
+router.post('/staff/assign-teams', adminAuth, staffCtrl.assignTeamsToJudge);
+
+// Meal Passes (Digital Coupon System)
+const mealCtrl = require('../controllers/admin/mealPassController');
+router.get('/meal-passes', adminAuth, mealCtrl.listPasses);
+router.post('/meal-passes', adminAuth, [body('name').notEmpty(), body('activeFrom').notEmpty(), body('activeUntil').notEmpty()], validateRequest, mealCtrl.createPass);
+router.put('/meal-passes/:id', adminAuth, mealCtrl.updatePass);
+router.delete('/meal-passes/:id', adminAuth, mealCtrl.deletePass);
+router.get('/meal-passes/stats', adminAuth, mealCtrl.getRedemptionStats);
+
+// Table Allocation
+const tableCtrl = require('../controllers/admin/tableController');
+router.put('/tables/:id', adminAuth, tableCtrl.assignTable);
+router.post('/tables/bulk', adminAuth, tableCtrl.bulkAssignTables);
+router.get('/tables/map', adminAuth, tableCtrl.getVenueMap);
+
+// Challenges (Midnight Mini-Challenges)
+const challengeCtrl = require('../controllers/admin/challengeController');
+router.get('/challenges', adminAuth, challengeCtrl.listChallenges);
+router.post('/challenges', adminAuth, [body('title').notEmpty(), body('description').notEmpty()], validateRequest, challengeCtrl.createChallenge);
+router.put('/challenges/:id', adminAuth, challengeCtrl.updateChallenge);
+router.delete('/challenges/:id', adminAuth, challengeCtrl.deleteChallenge);
+router.post('/challenges/mark-winner', adminAuth, challengeCtrl.markWinner);
+
+// Judge Scoring (admin view)
+const judgeCtrl = require('../controllers/admin/judgeController');
+router.get('/judging/scoreboard', adminAuth, judgeCtrl.getScoreboard);
+router.get('/judging/judges', adminAuth, judgeCtrl.listJudges);
+
 module.exports = router;
+

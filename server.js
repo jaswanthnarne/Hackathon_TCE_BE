@@ -33,6 +33,8 @@ app.use('/api', generalLimiter);
 app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/console/admin', require('./routes/adminRoutes'));
 app.use('/api/team', require('./routes/teamRoutes'));
+app.use('/api/volunteer', require('./routes/volunteerRoutes'));
+app.use('/api/judge', require('./routes/judgeRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'Server is running', timestamp: new Date() }));
